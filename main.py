@@ -99,7 +99,7 @@ plt.legend()
 
 plt.subplot(4, 2, 8)
 plt.plot(t, square_wave(modulation_freq, duration, sampling_rate)[1], label='Модулирующий сигнал (меандр)', linewidth=2)
-plt.title('Модулирующий сигнал (однополярный меандр)')
+plt.title('Модулирующий сигнал и отфильтрованный')
 plt.xlabel('Время, сек')
 plt.ylabel('Амплитуда')
 plt.legend()

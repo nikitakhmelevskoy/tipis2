@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.fftpack import fft, ifft
+from scipy.signal import hilbert
+
+
 def square_wave(frequency, duration, sampling_rate):
     t = np.linspace(0, duration, int(sampling_rate * duration), endpoint=False)
     signal = np.heaviside(np.sin(2 * np.pi * frequency * t), 0)
@@ -24,23 +27,13 @@ def frequency_modulation(carrier_freq, modulation_freq, duration, sampling_rate)
 def phase_modulation(carrier_freq, modulation_freq, duration, sampling_rate):
     t, message_signal = square_wave(modulation_freq, duration, sampling_rate)
     phase_deviation = 0.5
-    carrier_signal = np.sin(2 * np.pi * carrier_freq * t + phase_deviation * np.cumsum(message_signal) / sampling_rate)
+    deviation = phase_deviation * 2 * np.pi * message_signal
+    carrier_signal = np.sin(2 * np.pi * carrier_freq * t + deviation)
     return t, carrier_signal
 
 
 def synthesize_from_spectrum(truncated_spectrum):
     return np.real(ifft(truncated_spectrum))
-
-
-def synthesize_matching_signal(modulation_freq, duration, sampling_rate):
-    t, message_signal = square_wave(modulation_freq, duration, sampling_rate)
-    synthesized_signal = np.tile(message_signal, int(sampling_rate * duration / len(message_signal)))
-    return t, synthesized_signal[:int(sampling_rate * duration)]
-
-
-def filter_and_match_shape(modulated_signal, modulating_signal):
-    filtered_signal = np.convolve(modulated_signal, modulating_signal, mode='same') / np.sum(modulating_signal)
-    return filtered_signal
 
 
 duration = 1
@@ -56,12 +49,16 @@ spectrum = fft(am_signal)
 low_cutoff = 40
 high_cutoff = 60
 
-spectrum[:low_cutoff] = 0
-spectrum[high_cutoff:] = 0
+truncated_spectrum = spectrum.copy()
+truncated_spectrum[:low_cutoff] = 0
+truncated_spectrum[high_cutoff:] = 0
+freq = np.fft.fftfreq(len(spectrum), d=1 / sampling_rate)
 
-synthesized_signal = synthesize_from_spectrum(spectrum)
+synthesized_signal = synthesize_from_spectrum(truncated_spectrum)
 
-filtered_synthesized_signal = filter_and_match_shape(square_wave(modulation_freq, duration, sampling_rate)[1], synthesized_signal)
+analytic_signal = hilbert(synthesized_signal)
+
+restored_signal = np.abs(analytic_signal)
 
 plt.figure(figsize=(12, 8))
 
@@ -95,16 +92,26 @@ plt.xlim(0, 150)
 plt.subplot(4, 2, 7)
 plt.plot(t, synthesized_signal, label='Синтезированный сигнал из обрезанного спектра')
 plt.title('Синтезированный сигнал')
-plt.legend()
 
 plt.subplot(4, 2, 8)
+plt.plot(freq[:len(freq) // 2], abs(truncated_spectrum[:len(freq) // 2]),
+         label='Обрезанный спектр амплитудной модуляции')
+plt.title('Обрезанный спектр амплитудной модуляции')
+plt.xlabel('Frequency')
+plt.ylabel('Magnitude (energy)')
+plt.xlim(0, 150)
+
+plt.tight_layout()
+plt.show()
+
+plt.figure(figsize=(10, 6))
+
 plt.plot(t, square_wave(modulation_freq, duration, sampling_rate)[1], label='Модулирующий сигнал (меандр)', linewidth=2)
 plt.title('Модулирующий сигнал и отфильтрованный')
 plt.xlabel('Время, сек')
 plt.ylabel('Амплитуда')
-plt.legend()
 plt2 = plt.twinx()
-plt2.plot(t, filtered_synthesized_signal,'y')
+plt2.plot(t, restored_signal)
 
 plt.tight_layout()
 plt.show()

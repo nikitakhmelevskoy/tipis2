@@ -60,6 +60,10 @@ analytic_signal = hilbert(synthesized_signal)
 
 restored_signal = np.abs(analytic_signal)
 
+threshold = 0.5
+
+filtered_restored = np.where(restored_signal > threshold, 1, 0)
+
 plt.figure(figsize=(12, 8))
 
 plt.subplot(4, 2, 1)
@@ -104,14 +108,12 @@ plt.xlim(0, 150)
 plt.tight_layout()
 plt.show()
 
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(12, 8))
 
-plt.plot(t, square_wave(modulation_freq, duration, sampling_rate)[1], label='Модулирующий сигнал (меандр)', linewidth=2)
-plt.title('Модулирующий сигнал и отфильтрованный')
-plt.xlabel('Время, сек')
+plt.plot(t, filtered_restored, label='Отфильтрованный сигнал')
+plt.title('Отфильтрованный')
+plt.xlabel('Время')
 plt.ylabel('Амплитуда')
-plt2 = plt.twinx()
-plt2.plot(t, restored_signal)
 
 plt.tight_layout()
 plt.show()
